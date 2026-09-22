@@ -128,6 +128,16 @@ function selectObservation(observations, expected) {
   );
 }
 
+function assertProviderFiReady(fi) {
+  const status = text(fi?.status);
+  if (!['PARTIAL', 'COMPLETED'].includes(status)) {
+    throw new Error(
+      `Provider FI session status is ${status ?? 'UNKNOWN'}; expected PARTIAL or COMPLETED before observation use.`
+    );
+  }
+  return status;
+}
+
 function reconcile(expected, observed, toleranceMinor = 0) {
   if (!observed) return { outcome: 'NO_MATCH', reasons: ['No selected observation'] };
   if (expected.currency !== observed.currency) {
@@ -303,13 +313,14 @@ if (action === 'attach-consent') {
   }
 
   const fi = await request(`/sessions/${encodeURIComponent(state.session.id)}`);
+  const providerFiStatus = assertProviderFiReady(fi);
   const bankConnectionRef = optional('BANK_CONNECTION_REF') ?? `SETU-SANDBOX-${runId}`;
   const observations = normalizeTransactions(fi, bankConnectionRef);
 
   state.providerVerification = {
     resource: 'FI_SESSION',
     providerRef: state.session.id,
-    status: text(fi.status),
+    status: providerFiStatus,
     traceId: text(fi.traceId),
     confirmedAt: new Date().toISOString(),
   };
@@ -336,6 +347,7 @@ if (action === 'attach-consent') {
 
   // Re-fetch provider FI rather than persisting raw data between stages.
   const fi = await request(`/sessions/${encodeURIComponent(state.session.id)}`);
+  assertProviderFiReady(fi);
   const bankConnectionRef = optional('BANK_CONNECTION_REF') ?? `SETU-SANDBOX-${runId}`;
   const observations = normalizeTransactions(fi, bankConnectionRef);
   const observed = selectObservation(observations, expected);
@@ -407,6 +419,7 @@ if (action === 'attach-consent') {
   }
 
   const fi = await request(`/sessions/${encodeURIComponent(state.session.id)}`);
+  assertProviderFiReady(fi);
   const bankConnectionRef = optional('BANK_CONNECTION_REF') ?? `SETU-SANDBOX-${runId}`;
   const observations = normalizeTransactions(fi, bankConnectionRef);
   const observed = selectObservation(observations, expected);
