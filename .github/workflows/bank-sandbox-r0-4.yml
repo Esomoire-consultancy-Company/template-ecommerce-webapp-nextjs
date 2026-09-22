@@ -6,6 +6,8 @@ on:
       - 'src/lib/banking/**'
       - 'fixtures/banking/**'
       - 'scripts/bank-sandbox-verify.mjs'
+      - 'scripts/bank-replay-verify.mjs'
+      - 'scripts/bank-replay-verify.mjs'
       - 'docs/architecture/BANK_*'
       - '.github/workflows/bank-sandbox-r0-4.yml'
       - 'package.json'
@@ -43,6 +45,9 @@ jobs:
 
       - name: Verify synthetic banking sandbox vectors
         run: yarn bank:sandbox:verify
+
+      - name: Verify R0.6 replay determinism
+        run: yarn bank:replay:verify
 
       - name: Type-check banking contracts
         run: yarn type-check
