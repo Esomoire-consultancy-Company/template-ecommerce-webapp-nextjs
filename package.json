@@ -22,7 +22,8 @@
     "bank:sandbox:verify": "node scripts/bank-sandbox-verify.mjs",
     "bank:setu:sandbox-smoke": "node scripts/setu-aa-sandbox-smoke.mjs",
     "bank:setu:sandbox-lifecycle": "node scripts/setu-aa-sandbox-lifecycle.mjs",
-    "bank:replay:verify": "node scripts/bank-replay-verify.mjs"
+    "bank:replay:verify": "node scripts/bank-replay-verify.mjs",
+    "bank:setu:evidence": "node scripts/setu-aa-evidence-run.mjs"
   },
   "lint-staged": {
     "src/**/*.{js,jsx,ts,tsx}": [
