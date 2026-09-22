@@ -90,7 +90,7 @@ export class SetuAaClient {
     dataRange: { from: string; to: string };
     format: 'json' | 'xml';
   }): Promise<SetuSessionResponse> {
-    return this.request<SetuSessionResponse>('/v2/sessions', {
+    return this.request<SetuSessionResponse>('/sessions', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
@@ -100,7 +100,7 @@ export class SetuAaClient {
     sessionId: string
   ): Promise<SetuFiResponse> {
     return this.request<SetuFiResponse>(
-      `/v2/sessions/${encodeURIComponent(sessionId)}`
+      `/sessions/${encodeURIComponent(sessionId)}`
     );
   }
 }
