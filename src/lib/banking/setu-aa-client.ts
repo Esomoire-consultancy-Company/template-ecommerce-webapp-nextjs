@@ -66,7 +66,7 @@ export class SetuAaClient {
   }
 
   createConsent(payload: Record<string, unknown>): Promise<SetuConsentResponse> {
-    return this.request<SetuConsentResponse>('/v2/consents', {
+    return this.request<SetuConsentResponse>('/consents', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
@@ -74,7 +74,7 @@ export class SetuAaClient {
 
   getConsent(consentRequestId: string): Promise<SetuConsentResponse> {
     return this.request<SetuConsentResponse>(
-      `/v2/consents/${encodeURIComponent(consentRequestId)}`
+      `/consents/${encodeURIComponent(consentRequestId)}`
     );
   }
 
