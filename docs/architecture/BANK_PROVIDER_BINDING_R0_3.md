@@ -104,3 +104,14 @@ R0.3 passes when:
 7. payment initiation remains structurally unavailable;
 8. production cannot be enabled by changing only a UI flag;
 9. every consequential provider call can be paired with Warden and River references.
+
+
+## Current external references
+
+Re-verify these before changing provider behavior or promoting to production:
+
+- Setu AA Gateway quickstart: https://docs.setu.co/data/account-aggregator/quickstart
+- Setu AA consent flow and revocation: https://docs.setu.co/data/account-aggregator/api-integration/consent-flow
+- Setu AA account-availability/authentication reference: https://docs.setu.co/data/account-aggregator/api-integration/account-availability-apis
+
+At the time of R0.3 materialization, Setu documents the AA sandbox at `https://fiu-sandbox.setu.co`, production at `https://fiu.setu.co`, Bearer access-token authorization for AA calls, and `x-product-instance-id` scoping. Setu's quickstart also exposes FIU product credentials through its Bridge workflow. These are provider details, not VSR constitutional rules.
