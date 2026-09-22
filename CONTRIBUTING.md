@@ -1,3 +1,26 @@
+# Contributor Note
+
+This repository is the source-of-deployment for the e-commerce environment. Contributions are welcome across storefronts, commerce workflows, provider adapters, tests, observability, documentation, and developer tooling.
+
+Before contributing, preserve these architecture boundaries:
+
+- **GitHub is implementation and deployment lineage, not business or financial authority.**
+- **Provider-native systems remain authoritative for their own state.** A bank remains authoritative for account, balance, transaction, consent, settlement, and revocation state.
+- **DigitalMe identifies the actor; Warden governs purpose, scope, consent, and consequential execution; RiverOS records evidence and receipts; Synnergyze orchestrates workflows; SILK may represent economic entitlements or settlement context.**
+- A provider adapter must remain replaceable. Do not make one bank, PSP, commerce provider, cloud, or protocol constitutional to the application.
+- Never commit passwords, OTPs, API secrets, access/refresh tokens, private keys, signing material, full bank-account numbers, production credentials, or customer financial data.
+- Use opaque provider references and masked display values wherever possible.
+- Read, reconciliation, settlement-reference, and payment-initiation capabilities must remain separately scoped. Adding account connectivity does **not** automatically authorize movement of money.
+- Observations must not silently become accounting, legal, tax, or professional determinations.
+- Corrections must preserve prior observations and introduce explicit new state rather than rewriting history.
+- Any production-affecting capability should have a clear authority path, provider receipt, verification step, and evidence trail.
+
+For bank integrations specifically, implement against `src/lib/banking/provider.ts` rather than coupling application code directly to a bank SDK. New adapters should support explicit consent, callback verification, revocation/expiry, transaction observation where permitted, and auditable provider receipts.
+
+Contributor attribution remains in Git history and pull-request lineage. Where a contribution materially introduces a new provider, protocol, architectural contract, or operational capability, document the contributor and source/provenance in the relevant PR and architecture note.
+
+---
+
 # Introduction
 
 We appreciate any community contributions to this project, whether in the form of issues or Pull Requests.
