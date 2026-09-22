@@ -20,7 +20,8 @@
     "graphql-codegen:watch": "graphql-codegen --watch -r dotenv/config --config codegen.ts",
     "setup": "./bin/setup.sh",
     "bank:sandbox:verify": "node scripts/bank-sandbox-verify.mjs",
-    "bank:setu:sandbox-smoke": "node scripts/setu-aa-sandbox-smoke.mjs"
+    "bank:setu:sandbox-smoke": "node scripts/setu-aa-sandbox-smoke.mjs",
+    "bank:setu:sandbox-lifecycle": "node scripts/setu-aa-sandbox-lifecycle.mjs"
   },
   "lint-staged": {
     "src/**/*.{js,jsx,ts,tsx}": [
