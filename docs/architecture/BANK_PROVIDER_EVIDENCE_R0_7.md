@@ -95,6 +95,14 @@ Reconcile against one explicitly supplied commerce expectation:
 SETU_AA_EVIDENCE_ACTION=reconcile yarn bank:setu:evidence
 ```
 
+Replay the completed provider-backed reconciliation after FI readiness is final `COMPLETED`:
+
+```bash
+SETU_AA_EVIDENCE_ACTION=replay yarn bank:setu:evidence
+```
+
+Replay re-fetches FI from Setu, normalizes it again in memory, recomputes the observation and reconciliation hashes, and refuses any silent divergence. Changed evidence must produce a superseding receipt.
+
 Inspect the secret-free local run state:
 
 ```bash
@@ -144,6 +152,6 @@ R0.7 becomes provider-backed PASS only when a single run reaches `RECONCILED` us
 - privacy-minimizing normalization;
 - deterministic reconciliation;
 - a generated local River handoff receipt;
-- replay producing the same reconciliation hash.
+- provider-backed replay after `COMPLETED` FI readiness producing the same observation-set and reconciliation hashes.
 
 Until then the repository is source-ready and the provider execution remains pending.
