@@ -1,0 +1,48 @@
+name: Bank Sandbox R0.4
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/banking/**'
+      - 'fixtures/banking/**'
+      - 'scripts/bank-sandbox-verify.mjs'
+      - 'docs/architecture/BANK_*'
+      - '.github/workflows/bank-sandbox-r0-4.yml'
+      - 'package.json'
+      - 'yarn.lock'
+  push:
+    branches:
+      - alpha-ecommerce-bank-adapter-r0-1
+    paths:
+      - 'src/lib/banking/**'
+      - 'fixtures/banking/**'
+      - 'scripts/bank-sandbox-verify.mjs'
+      - 'docs/architecture/BANK_*'
+      - '.github/workflows/bank-sandbox-r0-4.yml'
+      - 'package.json'
+      - 'yarn.lock'
+
+jobs:
+  sandbox-contract:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Verify synthetic banking sandbox vectors
+        run: yarn bank:sandbox:verify
+
+      - name: Type-check banking contracts
+        run: yarn type-check
