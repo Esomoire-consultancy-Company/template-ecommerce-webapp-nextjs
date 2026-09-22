@@ -1,0 +1,102 @@
+{
+  "version": "BANK-CONNECTION-001/R0.4",
+  "synthetic": true,
+  "vectors": [
+    {
+      "id": "exact-match",
+      "expected": {
+        "expectationRef": "SETTLEMENT-001",
+        "kind": "PAYMENT_PROVIDER_PAYOUT",
+        "amountMinor": 125000,
+        "currency": "INR",
+        "direction": "CREDIT",
+        "providerReference": "PAYOUT-001"
+      },
+      "observed": {
+        "bankConnectionRef": "BANK-SANDBOX-001",
+        "providerTransactionRef": "BANK-TXN-001",
+        "observedAt": "2026-09-23T00:00:00+05:30",
+        "bookedAt": "2026-09-22T23:58:00+05:30",
+        "amountMinor": 125000,
+        "currency": "INR",
+        "direction": "CREDIT",
+        "description": "Synthetic settlement PAYOUT-001"
+      },
+      "toleranceMinor": 0,
+      "expectedOutcome": "MATCH"
+    },
+    {
+      "id": "within-tolerance",
+      "expected": {
+        "expectationRef": "SETTLEMENT-002",
+        "kind": "PAYMENT_PROVIDER_PAYOUT",
+        "amountMinor": 100000,
+        "currency": "INR",
+        "direction": "CREDIT"
+      },
+      "observed": {
+        "bankConnectionRef": "BANK-SANDBOX-001",
+        "providerTransactionRef": "BANK-TXN-002",
+        "observedAt": "2026-09-23T00:01:00+05:30",
+        "amountMinor": 99995,
+        "currency": "INR",
+        "direction": "CREDIT"
+      },
+      "toleranceMinor": 10,
+      "expectedOutcome": "MATCH_WITH_TOLERANCE"
+    },
+    {
+      "id": "amount-difference",
+      "expected": {
+        "expectationRef": "SETTLEMENT-003",
+        "kind": "REFUND",
+        "amountMinor": 50000,
+        "currency": "INR",
+        "direction": "DEBIT"
+      },
+      "observed": {
+        "bankConnectionRef": "BANK-SANDBOX-001",
+        "providerTransactionRef": "BANK-TXN-003",
+        "observedAt": "2026-09-23T00:02:00+05:30",
+        "amountMinor": 45000,
+        "currency": "INR",
+        "direction": "DEBIT"
+      },
+      "toleranceMinor": 0,
+      "expectedOutcome": "AMOUNT_DIFFERENCE"
+    },
+    {
+      "id": "direction-difference",
+      "expected": {
+        "expectationRef": "SETTLEMENT-004",
+        "kind": "PAYMENT_PROVIDER_FEE",
+        "amountMinor": 2500,
+        "currency": "INR",
+        "direction": "DEBIT"
+      },
+      "observed": {
+        "bankConnectionRef": "BANK-SANDBOX-001",
+        "providerTransactionRef": "BANK-TXN-004",
+        "observedAt": "2026-09-23T00:03:00+05:30",
+        "amountMinor": 2500,
+        "currency": "INR",
+        "direction": "CREDIT"
+      },
+      "toleranceMinor": 0,
+      "expectedOutcome": "DIRECTION_DIFFERENCE"
+    },
+    {
+      "id": "no-observation",
+      "expected": {
+        "expectationRef": "SETTLEMENT-005",
+        "kind": "ORDER_PAYMENT",
+        "amountMinor": 77500,
+        "currency": "INR",
+        "direction": "CREDIT"
+      },
+      "observed": null,
+      "toleranceMinor": 0,
+      "expectedOutcome": "NO_MATCH"
+    }
+  ]
+}
