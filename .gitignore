@@ -28,6 +28,9 @@ yarn-error.log*
 # local env files
 .env
 
+# local banking evidence/runtime state
+/.local/banking/
+
 # vercel
 .vercel
 
