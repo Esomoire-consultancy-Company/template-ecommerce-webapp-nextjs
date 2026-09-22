@@ -103,7 +103,7 @@ if (action === 'status') {
         traceId: session.traceId,
         wardenDecisionRef,
         next:
-          'Wait for a verified FI notification with PARTIAL or COMPLETED status before fetch.',
+          'Wait for a correlated FI notification with PARTIAL or COMPLETED status; the subsequent provider GET is the trust upgrade.',
       },
       null,
       2
@@ -112,13 +112,13 @@ if (action === 'status') {
 } else if (action === 'fetch') {
   const sessionId = required('SETU_AA_SESSION_ID');
   const notificationStatus = required('SETU_AA_FI_READY_STATUS');
-  const verifiedNotificationReceiptRef = required(
-    'SETU_AA_VERIFIED_NOTIFICATION_RECEIPT'
+  const notificationCorrelationRef = required(
+    'SETU_AA_NOTIFICATION_CORRELATION_REF'
   );
 
   if (!['PARTIAL', 'COMPLETED'].includes(notificationStatus)) {
     throw new Error(
-      'FI fetch refused: verified notification status must be PARTIAL or COMPLETED.'
+      'FI fetch refused: correlated notification status must be PARTIAL or COMPLETED.'
     );
   }
 
@@ -142,7 +142,7 @@ if (action === 'status') {
         fipCount,
         accountCount,
         traceId: fi.traceId,
-        verifiedNotificationReceiptRef,
+        notificationCorrelationRef,
         wardenDecisionRef,
         rawFinancialInformationLogged: false,
         next:
