@@ -7,6 +7,7 @@ on:
       - 'fixtures/banking/**'
       - 'scripts/bank-sandbox-verify.mjs'
       - 'scripts/bank-replay-verify.mjs'
+      - 'scripts/setu-aa-evidence-run.mjs'
       - 'docs/architecture/BANK_*'
       - '.github/workflows/bank-sandbox-r0-4.yml'
       - 'package.json'
@@ -19,6 +20,7 @@ on:
       - 'fixtures/banking/**'
       - 'scripts/bank-sandbox-verify.mjs'
       - 'scripts/bank-replay-verify.mjs'
+      - 'scripts/setu-aa-evidence-run.mjs'
       - 'docs/architecture/BANK_*'
       - '.github/workflows/bank-sandbox-r0-4.yml'
       - 'package.json'
@@ -48,6 +50,9 @@ jobs:
 
       - name: Verify R0.6 replay determinism
         run: yarn bank:replay:verify
+
+      - name: Syntax-check R0.7 evidence runner
+        run: node --check scripts/setu-aa-evidence-run.mjs
 
       - name: Type-check banking contracts
         run: yarn type-check
