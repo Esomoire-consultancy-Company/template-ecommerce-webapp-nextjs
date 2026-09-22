@@ -55,7 +55,7 @@ FI_PROVIDER_CONFIRMED
 RECONCILED
 ```
 
-The notification step is correlation only. Provider trust is upgraded by the subsequent authoritative Setu API read.
+The notification step is correlation only. Provider trust is upgraded by the subsequent authoritative Setu API read. The provider API FI status must itself be `PARTIAL` or `COMPLETED`; HTTP success alone is not sufficient.
 
 ## Commands
 
