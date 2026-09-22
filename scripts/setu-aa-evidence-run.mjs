@@ -92,6 +92,42 @@ function normalizeTransactions(fi, bankConnectionRef) {
   return observations;
 }
 
+function buildExpected() {
+  const expected = {
+    expectationRef: required('BANK_EXPECTATION_REF'),
+    amountMinor: Number(required('BANK_EXPECTED_AMOUNT_MINOR')),
+    currency: optional('BANK_EXPECTED_CURRENCY') ?? 'INR',
+    direction: required('BANK_EXPECTED_DIRECTION'),
+    providerReference: optional('BANK_EXPECTED_PROVIDER_REFERENCE'),
+  };
+
+  if (!Number.isSafeInteger(expected.amountMinor)) {
+    throw new Error('BANK_EXPECTED_AMOUNT_MINOR must be an integer.');
+  }
+  if (!['CREDIT', 'DEBIT'].includes(expected.direction)) {
+    throw new Error('BANK_EXPECTED_DIRECTION must be CREDIT or DEBIT.');
+  }
+
+  return expected;
+}
+
+function selectObservation(observations, expected) {
+  const requestedTxnRef = optional('BANK_PROVIDER_TRANSACTION_REF');
+
+  if (requestedTxnRef) {
+    return observations.find(
+      (item) => item.providerTransactionRef === requestedTxnRef
+    );
+  }
+
+  return observations.find(
+    (item) =>
+      item.amountMinor === expected.amountMinor &&
+      item.currency === expected.currency &&
+      item.direction === expected.direction
+  );
+}
+
 function reconcile(expected, observed, toleranceMinor = 0) {
   if (!observed) return { outcome: 'NO_MATCH', reasons: ['No selected observation'] };
   if (expected.currency !== observed.currency) {
@@ -296,42 +332,13 @@ if (action === 'attach-consent') {
 } else if (action === 'reconcile') {
   if (!state.observations?.hash) throw new Error('Fetch/normalization stage has not completed.');
 
-  const expected = {
-    expectationRef: required('BANK_EXPECTATION_REF'),
-    amountMinor: Number(required('BANK_EXPECTED_AMOUNT_MINOR')),
-    currency: optional('BANK_EXPECTED_CURRENCY') ?? 'INR',
-    direction: required('BANK_EXPECTED_DIRECTION'),
-    providerReference: optional('BANK_EXPECTED_PROVIDER_REFERENCE'),
-  };
-
-  if (!Number.isSafeInteger(expected.amountMinor)) {
-    throw new Error('BANK_EXPECTED_AMOUNT_MINOR must be an integer.');
-  }
-  if (!['CREDIT', 'DEBIT'].includes(expected.direction)) {
-    throw new Error('BANK_EXPECTED_DIRECTION must be CREDIT or DEBIT.');
-  }
+  const expected = buildExpected();
 
   // Re-fetch provider FI rather than persisting raw data between stages.
   const fi = await request(`/sessions/${encodeURIComponent(state.session.id)}`);
   const bankConnectionRef = optional('BANK_CONNECTION_REF') ?? `SETU-SANDBOX-${runId}`;
   const observations = normalizeTransactions(fi, bankConnectionRef);
-
-  const requestedTxnRef = optional('BANK_PROVIDER_TRANSACTION_REF');
-  let observed;
-
-  if (requestedTxnRef) {
-    observed = observations.find(
-      (item) => item.providerTransactionRef === requestedTxnRef
-    );
-  } else {
-    observed = observations.find(
-      (item) =>
-        item.amountMinor === expected.amountMinor &&
-        item.currency === expected.currency &&
-        item.direction === expected.direction
-    );
-  }
-
+  const observed = selectObservation(observations, expected);
   const toleranceMinor = Number(optional('BANK_EXPECTED_TOLERANCE_MINOR') ?? '0');
   const result = reconcile(expected, observed, toleranceMinor);
 
@@ -379,6 +386,63 @@ if (action === 'attach-consent') {
     receiptHash: state.reconciliation.receiptHash,
     rawFinancialInformationPersisted: false,
   });
+} else if (action === 'replay') {
+  if (state.stage !== 'RECONCILED' || !state.reconciliation?.receiptPath) {
+    throw new Error('Replay requires a completed reconciliation receipt.');
+  }
+  if (state.notification?.status !== 'COMPLETED') {
+    throw new Error('Provider-backed replay requires final COMPLETED FI readiness.');
+  }
+  if (!fs.existsSync(state.reconciliation.receiptPath)) {
+    throw new Error('Stored reconciliation receipt is unavailable.');
+  }
+
+  const prior = JSON.parse(
+    fs.readFileSync(state.reconciliation.receiptPath, 'utf8')
+  );
+  const expected = buildExpected();
+
+  if (sha256(expected) !== prior.expectationHash) {
+    throw new Error('Replay expectation does not match the original expectation hash.');
+  }
+
+  const fi = await request(`/sessions/${encodeURIComponent(state.session.id)}`);
+  const bankConnectionRef = optional('BANK_CONNECTION_REF') ?? `SETU-SANDBOX-${runId}`;
+  const observations = normalizeTransactions(fi, bankConnectionRef);
+  const observed = selectObservation(observations, expected);
+  const toleranceMinor = Number(optional('BANK_EXPECTED_TOLERANCE_MINOR') ?? '0');
+  const result = reconcile(expected, observed, toleranceMinor);
+
+  const observationSetHash = sha256(observations);
+  const reconciliationHash = sha256(result);
+  const deterministic =
+    observationSetHash === prior.observationSetHash &&
+    reconciliationHash === prior.reconciliationHash;
+
+  if (!deterministic) {
+    throw new Error(
+      'Provider-backed replay changed observation or reconciliation hashes; create a superseding receipt instead of rewriting prior evidence.'
+    );
+  }
+
+  state.replay = {
+    deterministic: true,
+    observationSetHash,
+    reconciliationHash,
+    replayedAt: new Date().toISOString(),
+  };
+  state.stage = 'REPLAY_VERIFIED';
+  writeState(state);
+
+  safePrint({
+    ok: true,
+    runId,
+    stage: state.stage,
+    deterministic: true,
+    observationSetHash,
+    reconciliationHash,
+    rawFinancialInformationPersisted: false,
+  });
 } else if (action === 'show') {
   safePrint({
     ...state,
@@ -386,6 +450,6 @@ if (action === 'attach-consent') {
   });
 } else {
   throw new Error(
-    'SETU_AA_EVIDENCE_ACTION must be one of: init, attach-consent, create-session, record-notification, fetch, reconcile, show'
+    'SETU_AA_EVIDENCE_ACTION must be one of: init, attach-consent, create-session, record-notification, fetch, reconcile, replay, show'
   );
 }
