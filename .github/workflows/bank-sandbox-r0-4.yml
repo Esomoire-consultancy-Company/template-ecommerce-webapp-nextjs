@@ -1,0 +1,78 @@
+name: Bank Sandbox R0.4
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/banking/**'
+      - 'fixtures/banking/**'
+      - 'scripts/bank-sandbox-verify.mjs'
+      - 'scripts/bank-replay-verify.mjs'
+      - 'scripts/setu-aa-evidence-run.mjs'
+      - 'scripts/bank-river-handoff-validate.mjs'
+      - 'scripts/bank-river-contract-verify.mjs'
+      - 'scripts/bank-river-ingest.mjs'
+      - 'scripts/bank-river-http-contract-verify.mjs'
+      - 'docs/architecture/BANK_*'
+      - '.github/workflows/bank-sandbox-r0-4.yml'
+      - 'package.json'
+      - 'yarn.lock'
+  push:
+    branches:
+      - alpha-ecommerce-bank-adapter-r0-1
+    paths:
+      - 'src/lib/banking/**'
+      - 'fixtures/banking/**'
+      - 'scripts/bank-sandbox-verify.mjs'
+      - 'scripts/bank-replay-verify.mjs'
+      - 'scripts/setu-aa-evidence-run.mjs'
+      - 'scripts/bank-river-handoff-validate.mjs'
+      - 'scripts/bank-river-contract-verify.mjs'
+      - 'scripts/bank-river-ingest.mjs'
+      - 'scripts/bank-river-http-contract-verify.mjs'
+      - 'docs/architecture/BANK_*'
+      - '.github/workflows/bank-sandbox-r0-4.yml'
+      - 'package.json'
+      - 'yarn.lock'
+
+jobs:
+  sandbox-contract:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Verify synthetic banking sandbox vectors
+        run: yarn bank:sandbox:verify
+
+      - name: Verify R0.6 replay determinism
+        run: yarn bank:replay:verify
+
+      - name: Syntax-check R0.7 evidence runner
+        run: node --check scripts/setu-aa-evidence-run.mjs
+
+      - name: Syntax-check R0.8 River handoff validator
+        run: node --check scripts/bank-river-handoff-validate.mjs
+
+      - name: Verify R0.8 River contract
+        run: yarn bank:river:contract-verify
+
+      - name: Syntax-check R0.8 River ingest transport
+        run: node --check scripts/bank-river-ingest.mjs
+
+      - name: Verify R0.8 HTTP ingress handshake
+        run: yarn bank:river:http-contract-verify
+
+      - name: Type-check banking contracts
+        run: yarn type-check

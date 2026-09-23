@@ -18,7 +18,16 @@
     "type-check": "tsc --noEmit",
     "graphql-codegen:generate": "graphql-codegen -r dotenv/config --config codegen.ts",
     "graphql-codegen:watch": "graphql-codegen --watch -r dotenv/config --config codegen.ts",
-    "setup": "./bin/setup.sh"
+    "setup": "./bin/setup.sh",
+    "bank:sandbox:verify": "node scripts/bank-sandbox-verify.mjs",
+    "bank:setu:sandbox-smoke": "node scripts/setu-aa-sandbox-smoke.mjs",
+    "bank:setu:sandbox-lifecycle": "node scripts/setu-aa-sandbox-lifecycle.mjs",
+    "bank:replay:verify": "node scripts/bank-replay-verify.mjs",
+    "bank:setu:evidence": "node scripts/setu-aa-evidence-run.mjs",
+    "bank:river:validate": "node scripts/bank-river-handoff-validate.mjs",
+    "bank:river:contract-verify": "node scripts/bank-river-contract-verify.mjs",
+    "bank:river:ingest": "node scripts/bank-river-ingest.mjs",
+    "bank:river:http-contract-verify": "node scripts/bank-river-http-contract-verify.mjs"
   },
   "lint-staged": {
     "src/**/*.{js,jsx,ts,tsx}": [
