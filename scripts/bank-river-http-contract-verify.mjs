@@ -1,5 +1,5 @@
 import http from 'node:http';
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
@@ -100,27 +100,44 @@ const server = http.createServer((req, res) => {
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const address = server.address();
 
-const child = spawnSync(
-  process.execPath,
-  ['scripts/bank-river-ingest.mjs'],
-  {
-    cwd: process.cwd(),
-    env: {
-      ...process.env,
-      BANK_RUN_ID: runId,
-      RIVER_INGEST_MODE: 'http',
-      RIVER_INGEST_URL: `http://127.0.0.1:${address.port}/ingest`,
-      RIVER_API_TOKEN: 'ci-only-token',
-    },
-    encoding: 'utf8',
-  }
-);
+const childResult = await new Promise((resolve) => {
+  const child = spawn(
+    process.execPath,
+    ['scripts/bank-river-ingest.mjs'],
+    {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        BANK_RUN_ID: runId,
+        RIVER_INGEST_MODE: 'http',
+        RIVER_INGEST_URL: `http://127.0.0.1:${address.port}/ingest`,
+        RIVER_API_TOKEN: 'ci-only-token',
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }
+  );
+
+  let stdout = '';
+  let stderr = '';
+
+  child.stdout.on('data', (chunk) => {
+    stdout += chunk;
+  });
+
+  child.stderr.on('data', (chunk) => {
+    stderr += chunk;
+  });
+
+  child.on('close', (code) => {
+    resolve({ code, stdout, stderr });
+  });
+});
 
 await new Promise((resolve) => server.close(resolve));
 
-if (child.status !== 0) {
-  process.stderr.write(child.stderr || child.stdout);
-  process.exit(child.status ?? 1);
+if (childResult.code !== 0) {
+  process.stderr.write(childResult.stderr || childResult.stdout);
+  process.exit(childResult.code ?? 1);
 }
 
 if (
