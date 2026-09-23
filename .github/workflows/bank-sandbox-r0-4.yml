@@ -9,6 +9,7 @@ on:
       - 'scripts/bank-replay-verify.mjs'
       - 'scripts/setu-aa-evidence-run.mjs'
       - 'scripts/bank-river-handoff-validate.mjs'
+      - 'scripts/bank-river-contract-verify.mjs'
       - 'docs/architecture/BANK_*'
       - '.github/workflows/bank-sandbox-r0-4.yml'
       - 'package.json'
@@ -23,6 +24,7 @@ on:
       - 'scripts/bank-replay-verify.mjs'
       - 'scripts/setu-aa-evidence-run.mjs'
       - 'scripts/bank-river-handoff-validate.mjs'
+      - 'scripts/bank-river-contract-verify.mjs'
       - 'docs/architecture/BANK_*'
       - '.github/workflows/bank-sandbox-r0-4.yml'
       - 'package.json'
@@ -58,6 +60,9 @@ jobs:
 
       - name: Syntax-check R0.8 River handoff validator
         run: node --check scripts/bank-river-handoff-validate.mjs
+
+      - name: Verify R0.8 River contract
+        run: yarn bank:river:contract-verify
 
       - name: Type-check banking contracts
         run: yarn type-check
