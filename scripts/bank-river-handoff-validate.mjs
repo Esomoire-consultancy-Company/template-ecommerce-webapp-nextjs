@@ -61,6 +61,12 @@ if (receipt.provider !== 'setu-aa' || receipt.environment !== 'sandbox') {
 if (receipt.rawFinancialInformationPersisted !== false) {
   throw new Error('Receipt violates the raw-FI persistence boundary.');
 }
+if (!state.reconciliation?.receiptHash) {
+  throw new Error('Stored full receipt hash is missing from R0.7 state.');
+}
+if (sha256(receipt) !== state.reconciliation.receiptHash) {
+  throw new Error('Full reconciliation receipt hash mismatch.');
+}
 if (sha256(receipt.reconciliation) !== receipt.reconciliationHash) {
   throw new Error('Reconciliation hash mismatch.');
 }
