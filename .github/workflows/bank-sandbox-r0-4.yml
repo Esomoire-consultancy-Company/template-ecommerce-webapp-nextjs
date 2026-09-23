@@ -10,6 +10,8 @@ on:
       - 'scripts/setu-aa-evidence-run.mjs'
       - 'scripts/bank-river-handoff-validate.mjs'
       - 'scripts/bank-river-contract-verify.mjs'
+      - 'scripts/bank-river-http-contract-verify.mjs'
+      - 'scripts/bank-river-ingest.mjs'
       - 'docs/architecture/BANK_*'
       - '.github/workflows/bank-sandbox-r0-4.yml'
       - 'package.json'
@@ -63,6 +65,12 @@ jobs:
 
       - name: Verify R0.8 River contract
         run: yarn bank:river:contract-verify
+
+      - name: Syntax-check R0.8 River ingest transport
+        run: node --check scripts/bank-river-ingest.mjs
+
+      - name: Verify R0.8 HTTP ingress handshake
+        run: yarn bank:river:http-contract-verify
 
       - name: Type-check banking contracts
         run: yarn type-check
