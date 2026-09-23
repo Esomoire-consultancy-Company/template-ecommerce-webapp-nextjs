@@ -93,6 +93,12 @@ const state = {
     reconciliationHash: receipt.reconciliationHash,
     replayedAt: '2026-09-23T00:06:00+05:30',
   },
+  reconciliation: {
+    expectationRef: receipt.expectationRef,
+    outcome: receipt.reconciliation.outcome,
+    receiptPath,
+    receiptHash: sha256(receipt),
+  },
 };
 
 fs.writeFileSync(statePath, JSON.stringify(state, null, 2) + '\n');
@@ -144,6 +150,34 @@ for (const [ok, label] of assertions) {
 const { event_hash: eventHash, ...withoutHash } = event;
 if (sha256(withoutHash) !== eventHash) {
   throw new Error('R0.8 event hash is not reproducible.');
+}
+
+const tamperedReceipt = {
+  ...receipt,
+  actorRef: 'service:tampered-after-replay',
+};
+
+fs.writeFileSync(
+  receiptPath,
+  JSON.stringify(tamperedReceipt, null, 2) + '\n'
+);
+
+const tamperResult = spawnSync(
+  process.execPath,
+  ['scripts/bank-river-handoff-validate.mjs'],
+  {
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      BANK_RUN_ID: runId,
+      RIVER_WORKSPACE_ID: '00000000-0000-4000-8000-000000000801',
+    },
+    encoding: 'utf8',
+  }
+);
+
+if (tamperResult.status === 0) {
+  throw new Error('Tampered full receipt was unexpectedly admitted to River handoff.');
 }
 
 console.log(
