@@ -25,7 +25,9 @@
     "bank:replay:verify": "node scripts/bank-replay-verify.mjs",
     "bank:setu:evidence": "node scripts/setu-aa-evidence-run.mjs",
     "bank:river:validate": "node scripts/bank-river-handoff-validate.mjs",
-    "bank:river:contract-verify": "node scripts/bank-river-contract-verify.mjs"
+    "bank:river:contract-verify": "node scripts/bank-river-contract-verify.mjs",
+    "bank:river:ingest": "node scripts/bank-river-ingest.mjs",
+    "bank:river:http-contract-verify": "node scripts/bank-river-http-contract-verify.mjs"
   },
   "lint-staged": {
     "src/**/*.{js,jsx,ts,tsx}": [
