@@ -1,8 +1,17 @@
 import { createHash } from 'node:crypto';
 
 function canonicalize(value: unknown): string {
+  if (
+    value === undefined ||
+    typeof value === 'function' ||
+    typeof value === 'symbol'
+  ) {
+    return 'null';
+  }
+
   if (value === null || typeof value !== 'object') {
-    return JSON.stringify(value);
+    const encoded = JSON.stringify(value);
+    return encoded === undefined ? 'null' : encoded;
   }
 
   if (Array.isArray(value)) {
@@ -10,7 +19,16 @@ function canonicalize(value: unknown): string {
   }
 
   const record = value as Record<string, unknown>;
-  const keys = Object.keys(record).sort();
+  const keys = Object.keys(record)
+    .filter((key) => {
+      const item = record[key];
+      return (
+        item !== undefined &&
+        typeof item !== 'function' &&
+        typeof item !== 'symbol'
+      );
+    })
+    .sort();
 
   return `{${keys
     .map((key) => `${JSON.stringify(key)}:${canonicalize(record[key])}`)
