@@ -63,33 +63,58 @@ function normalizeTransactions(fi, bankConnectionRef) {
 
       for (const txnValue of array(transactions?.transaction)) {
         const txn = record(txnValue);
-        const amountMinor = rupeesToMinor(txn?.amount);
-        const direction = text(txn?.type)?.toUpperCase();
-        const providerTransactionRef = text(txn?.txnId) ?? text(txn?.reference);
-        const observedAt = text(txn?.transactionTimestamp) ?? text(txn?.valueDate);
+
+        if (!txn) {
+          throw new Error(
+            'Setu FI normalization failed: transaction record is not an object.'
+          );
+        }
+
+        const amountMinor = rupeesToMinor(txn.amount);
+        const direction = text(txn.type)?.toUpperCase();
+        const providerTransactionRef = text(txn.txnId) ?? text(txn.reference);
+        const observedAt = text(txn.transactionTimestamp) ?? text(txn.valueDate);
 
         if (
           amountMinor === undefined ||
           !providerTransactionRef ||
           !observedAt ||
           !['CREDIT', 'DEBIT'].includes(direction)
-        ) continue;
+        ) {
+          throw new Error(
+            'Setu FI normalization failed: transaction is missing a valid amount, reference, timestamp, or CREDIT/DEBIT direction.'
+          );
+        }
 
         observations.push({
           bankConnectionRef,
           providerTransactionRef,
           observedAt,
-          bookedAt: text(txn?.valueDate),
+          bookedAt: text(txn.valueDate),
           amountMinor,
           currency: 'INR',
           direction,
-          description: text(txn?.narration),
+          description: text(txn.narration),
         });
       }
     }
   }
 
-  return observations;
+  return observations.sort((a, b) => {
+    const byRef = a.providerTransactionRef.localeCompare(
+      b.providerTransactionRef
+    );
+    if (byRef !== 0) return byRef;
+
+    const byObserved = a.observedAt.localeCompare(b.observedAt);
+    if (byObserved !== 0) return byObserved;
+
+    if (a.amountMinor !== b.amountMinor) {
+      return a.amountMinor - b.amountMinor;
+    }
+
+    return a.direction.localeCompare(b.direction);
+  });
 }
 
 function buildExpected() {
@@ -245,6 +270,38 @@ async function request(apiPath, init = {}) {
 
 const state = readState();
 
+async function requireActiveConsent() {
+  const consentId = state.consent?.id;
+  if (!consentId) {
+    throw new Error('No known consent exists for this run.');
+  }
+
+  const consent = await request(
+    `/consents/${encodeURIComponent(consentId)}`
+  );
+  const status = text(consent.status);
+
+  if (!status) {
+    throw new Error('Provider consent response is missing a valid status.');
+  }
+
+  state.consent = {
+    ...state.consent,
+    status,
+    traceId: text(consent.traceId),
+    observedAt: new Date().toISOString(),
+  };
+
+  if (status !== 'ACTIVE') {
+    writeState(state);
+    throw new Error(
+      `Provider consent is ${status}; ACTIVE consent is required for FI access.`
+    );
+  }
+
+  return consent;
+}
+
 if (state.environment !== 'sandbox' || state.provider !== 'setu-aa') {
   throw new Error('Run state is outside the admitted sandbox/provider boundary.');
 }
@@ -252,19 +309,23 @@ if (state.environment !== 'sandbox' || state.provider !== 'setu-aa') {
 if (action === 'attach-consent') {
   const consentId = required('SETU_AA_CONSENT_ID');
   const consent = await request(`/consents/${encodeURIComponent(consentId)}`);
+  const consentStatus = text(consent.status);
+  if (!consentStatus) {
+    throw new Error('Provider consent response is missing a valid status.');
+  }
+
   state.consent = {
     id: consent.id ?? consentId,
-    status: consent.status,
+    status: consentStatus,
     traceId: consent.traceId,
     observedAt: new Date().toISOString(),
   };
-  state.stage = consent.status === 'ACTIVE' ? 'CONSENT_ACTIVE' : 'CONSENT_OBSERVED';
+  state.stage =
+    consentStatus === 'ACTIVE' ? 'CONSENT_ACTIVE' : 'CONSENT_OBSERVED';
   writeState(state);
   safePrint({ ok: true, runId, stage: state.stage, consent: state.consent });
 } else if (action === 'create-session') {
-  if (state.consent?.status !== 'ACTIVE') {
-    throw new Error('Cannot create FI session until provider-confirmed consent state is ACTIVE.');
-  }
+  await requireActiveConsent();
 
   const from = required('SETU_AA_DATA_FROM');
   const to = required('SETU_AA_DATA_TO');
@@ -312,6 +373,7 @@ if (action === 'attach-consent') {
     throw new Error('Correlated FI notification does not indicate readiness.');
   }
 
+  await requireActiveConsent();
   const fi = await request(`/sessions/${encodeURIComponent(state.session.id)}`);
   const providerFiStatus = assertProviderFiReady(fi);
   const bankConnectionRef = optional('BANK_CONNECTION_REF') ?? `SETU-SANDBOX-${runId}`;
@@ -345,7 +407,8 @@ if (action === 'attach-consent') {
 
   const expected = buildExpected();
 
-  // Re-fetch provider FI rather than persisting raw data between stages.
+  // Re-check ACTIVE consent and re-fetch provider FI rather than persisting raw data.
+  await requireActiveConsent();
   const fi = await request(`/sessions/${encodeURIComponent(state.session.id)}`);
   assertProviderFiReady(fi);
   const bankConnectionRef = optional('BANK_CONNECTION_REF') ?? `SETU-SANDBOX-${runId}`;
@@ -418,6 +481,7 @@ if (action === 'attach-consent') {
     throw new Error('Replay expectation does not match the original expectation hash.');
   }
 
+  await requireActiveConsent();
   const fi = await request(`/sessions/${encodeURIComponent(state.session.id)}`);
   assertProviderFiReady(fi);
   const bankConnectionRef = optional('BANK_CONNECTION_REF') ?? `SETU-SANDBOX-${runId}`;
