@@ -10,9 +10,19 @@ function required(name) {
 }
 
 function canonicalize(value) {
-  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (value === undefined || typeof value === 'function' || typeof value === 'symbol') {
+    return 'null';
+  }
+  if (value === null || typeof value !== 'object') {
+    const encoded = JSON.stringify(value);
+    return encoded === undefined ? 'null' : encoded;
+  }
   if (Array.isArray(value)) return `[${value.map(canonicalize).join(',')}]`;
   return `{${Object.keys(value)
+    .filter((key) => {
+      const item = value[key];
+      return item !== undefined && typeof item !== 'function' && typeof item !== 'symbol';
+    })
     .sort()
     .map((key) => `${JSON.stringify(key)}:${canonicalize(value[key])}`)
     .join(',')}`;
