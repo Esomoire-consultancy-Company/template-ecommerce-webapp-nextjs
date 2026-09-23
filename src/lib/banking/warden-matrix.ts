@@ -45,8 +45,18 @@ export function admitBankSandboxOperation(
     throw new Error(`Warden denied ${decision.capability}`);
   }
 
-  if (decision.expiresAt && new Date(decision.expiresAt) <= now) {
-    throw new Error(`Warden decision expired for ${decision.capability}`);
+  if (decision.expiresAt) {
+    const expiresAtMs = Date.parse(decision.expiresAt);
+
+    if (!Number.isFinite(expiresAtMs)) {
+      throw new Error(
+        `Warden decision has invalid expiry for ${decision.capability}`
+      );
+    }
+
+    if (expiresAtMs <= now.getTime()) {
+      throw new Error(`Warden decision expired for ${decision.capability}`);
+    }
   }
 
   if (MONEY_MOVEMENT.has(decision.capability)) {
