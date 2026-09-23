@@ -115,11 +115,12 @@ export function assertAaEligibility(
   participant: AaParticipantProfile
 ): void {
   if (
-    participant.rail === 'AA_FIU' &&
+    (participant.rail === 'AA_FIU' ||
+      participant.rail === 'TSP_MEDIATED') &&
     participant.eligibilityState !== 'ELIGIBLE_REGULATED_ENTITY'
   ) {
     throw new Error(
-      'AA FIU production access is blocked until regulated-entity eligibility is verified.'
+      'AA FIU/TSP-mediated production access is blocked until regulated-entity eligibility is verified.'
     );
   }
 }
