@@ -1,5 +1,6 @@
 import {
   BankAccountProjection,
+  BankBalanceObservation,
   BankConnectionRequest,
   BankConsentSession,
   BankTransactionObservation,
@@ -12,16 +13,26 @@ export interface BankConnectionProvider {
     request: BankConnectionRequest
   ): Promise<BankConsentSession>;
 
+  /**
+   * The callback exchange receives the original consent session object so the
+   * adapter derives authority lineage from the session that was actually
+   * created. Callers cannot substitute a different Warden decision reference.
+   */
   exchangeCallback(input: {
-    consentSessionRef: string;
+    consentSession: BankConsentSession;
     callbackParams: Record<string, string | string[] | undefined>;
-    wardenDecisionRef: string;
   }): Promise<BankAccountProjection>;
+
+  getBalanceObservation(input: {
+    bankConnectionRef: string;
+    wardenDecisionRef: string;
+  }): Promise<BankBalanceObservation>;
 
   listTransactionObservations(input: {
     bankConnectionRef: string;
     from: string;
     to: string;
+    wardenDecisionRef: string;
   }): Promise<BankTransactionObservation[]>;
 
   revokeConnection(input: {
@@ -50,6 +61,10 @@ export class DisabledBankConnectionProvider
   }
 
   async exchangeCallback(): Promise<BankAccountProjection> {
+    return this.unavailable();
+  }
+
+  async getBalanceObservation(): Promise<BankBalanceObservation> {
     return this.unavailable();
   }
 
