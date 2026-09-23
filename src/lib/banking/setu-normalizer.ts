@@ -52,12 +52,19 @@ export function normalizeSetuDepositTransactions(input: {
 
       for (const txnValue of asArray(transactions?.transaction)) {
         const txn = asRecord(txnValue);
-        const amountMinor = rupeesToMinor(txn?.amount);
-        const type = asString(txn?.type)?.toUpperCase();
+
+        if (!txn) {
+          throw new Error(
+            'Setu FI normalization failed: transaction record is not an object.'
+          );
+        }
+
+        const amountMinor = rupeesToMinor(txn.amount);
+        const type = asString(txn.type)?.toUpperCase();
         const providerTransactionRef =
-          asString(txn?.txnId) ?? asString(txn?.reference);
+          asString(txn.txnId) ?? asString(txn.reference);
         const observedAt =
-          asString(txn?.transactionTimestamp) ?? asString(txn?.valueDate);
+          asString(txn.transactionTimestamp) ?? asString(txn.valueDate);
 
         if (
           amountMinor === undefined ||
@@ -65,22 +72,38 @@ export function normalizeSetuDepositTransactions(input: {
           !observedAt ||
           (type !== 'CREDIT' && type !== 'DEBIT')
         ) {
-          continue;
+          throw new Error(
+            'Setu FI normalization failed: transaction is missing a valid amount, reference, timestamp, or CREDIT/DEBIT direction.'
+          );
         }
 
         observations.push({
           bankConnectionRef: input.bankConnectionRef,
           providerTransactionRef,
           observedAt,
-          bookedAt: asString(txn?.valueDate),
+          bookedAt: asString(txn.valueDate),
           amountMinor,
           currency: 'INR',
           direction: type,
-          description: asString(txn?.narration),
+          description: asString(txn.narration),
         });
       }
     }
   }
 
-  return observations;
+  return observations.sort((a, b) => {
+    const byRef = a.providerTransactionRef.localeCompare(
+      b.providerTransactionRef
+    );
+    if (byRef !== 0) return byRef;
+
+    const byObserved = a.observedAt.localeCompare(b.observedAt);
+    if (byObserved !== 0) return byObserved;
+
+    if (a.amountMinor !== b.amountMinor) {
+      return a.amountMinor - b.amountMinor;
+    }
+
+    return a.direction.localeCompare(b.direction);
+  });
 }
