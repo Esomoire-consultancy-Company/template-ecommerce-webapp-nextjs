@@ -117,7 +117,6 @@ export async function correlateSetuAaNotification(input: {
 
   if (
     input.context.expectedConsentId &&
-    observation.consentId &&
     observation.consentId !== input.context.expectedConsentId
   ) {
     return {
@@ -130,7 +129,6 @@ export async function correlateSetuAaNotification(input: {
 
   if (
     input.context.expectedSessionId &&
-    observation.sessionId &&
     observation.sessionId !== input.context.expectedSessionId
   ) {
     return {
