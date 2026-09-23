@@ -152,3 +152,88 @@ GitHub                   source/deployment lineage
 ```
 
 River evidence may prove what was observed and how it was reconciled. It does not replace the originating bank/provider record.
+
+
+## HTTP ingress transport
+
+R0.8 now includes a transport binding for the external-evidence ingress contract.
+
+Runtime modes:
+
+```text
+RIVER_INGEST_MODE=verify
+    -> validate the compiled candidate only
+    -> no network call
+    -> no durable River claim
+
+RIVER_INGEST_MODE=http
+    -> POST RIVER-EXTERNAL-EVIDENCE-INGRESS-001
+    -> configured RIVER_INGEST_URL
+    -> Bearer token supplied from runtime secret storage
+    -> require canonical River event + receipt refs
+```
+
+Commands:
+
+```bash
+yarn bank:river:validate
+yarn bank:river:ingest
+```
+
+The first command compiles the local River event candidate from a replay-verified R0.7 run.
+
+The second defaults to verify-only. A durable write is attempted only when:
+
+```bash
+RIVER_INGEST_MODE=http
+RIVER_INGEST_URL=<canonical River ingress endpoint>
+RIVER_API_TOKEN=<runtime secret>
+yarn bank:river:ingest
+```
+
+The commerce application is never given direct database credentials. It submits the precompiled event to the admitted River ingress service.
+
+## Durable receipt acceptance
+
+An HTTP 2xx is not enough.
+
+The ingress response must return and match:
+
+- canonical River event reference;
+- canonical River receipt reference;
+- workspace;
+- source system;
+- source event reference;
+- submitted event hash;
+- recorded timestamp;
+- idempotent replay state where applicable.
+
+Any mismatch fails closed.
+
+After successful admission the local runtime stores only:
+
+```text
+.local/banking/<BANK_RUN_ID>.river-durable-receipt.json
+```
+
+This receipt contains River lineage and hashes, not raw financial information or provider credentials.
+
+## Prohibited payload scan
+
+Before network submission the R0.8 runner recursively rejects evidence payloads containing secret/identity-sensitive key classes such as:
+
+- access/refresh tokens;
+- client secrets;
+- authorization material;
+- passwords/OTPs;
+- VUA;
+- full bank account number fields;
+- PAN/Aadhaar/DOB fields.
+
+The bank/AA provider remains authoritative for bank-native data. River receives only the governed evidence projection.
+
+## CI contract test
+
+`yarn bank:river:http-contract-verify` starts a local mock ingress service, submits a synthetic R0.8 event through the same HTTP runner, validates the returned canonical lineage, and verifies the resulting durable-receipt shape.
+
+The mock test proves the transport contract only. It does not claim that a real RiverOS append occurred.
