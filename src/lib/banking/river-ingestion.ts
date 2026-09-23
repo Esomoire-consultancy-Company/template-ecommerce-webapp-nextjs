@@ -93,10 +93,50 @@ export interface RiverEventInsertCandidate {
 
 export interface RiverEventWriteReceipt {
   riverEventId: string;
+  riverReceiptId: string;
   workspaceId: string;
   sourceEventRef: string;
   eventHash: string;
   recordedAt: string;
+  idempotentReplay: boolean;
+}
+
+export const RIVER_EXTERNAL_EVIDENCE_INGRESS_CONTRACT_ID =
+  'RIVER-EXTERNAL-EVIDENCE-INGRESS-001' as const;
+
+export interface RiverExternalEvidenceIngressRequest {
+  contract_id: typeof RIVER_EXTERNAL_EVIDENCE_INGRESS_CONTRACT_ID;
+  contract_version: '0.1';
+  event: RiverEventInsertCandidate;
+}
+
+export interface RiverExternalEvidenceIngressResponse {
+  accepted: boolean;
+  river_event_ref?: string;
+  river_receipt_ref?: string;
+  workspace_id?: string;
+  source_system?: string;
+  source_event_ref?: string;
+  event_hash?: string;
+  recorded_at?: string;
+  idempotent_replay?: boolean;
+  failure_code?:
+    | 'SOURCE_NOT_ADMITTED'
+    | 'ENVIRONMENT_NOT_ADMITTED'
+    | 'ROUTE_NOT_FOUND'
+    | 'AUTHORITY_REQUIRED'
+    | 'HASH_MISMATCH'
+    | 'IDEMPOTENCY_CONFLICT'
+    | 'PROHIBITED_PAYLOAD'
+    | 'SEMANTIC_SCOPE_VIOLATION'
+    | 'INGEST_FAILED';
+  reason?: string;
+}
+
+export interface RiverExternalEvidenceIngressPort {
+  ingest(
+    request: RiverExternalEvidenceIngressRequest
+  ): Promise<RiverExternalEvidenceIngressResponse>;
 }
 
 export interface RiverEventWriter {
@@ -215,6 +255,80 @@ export function compileBankRiverEvent(input: {
     ...core,
     event_hash: canonicalSha256(core),
   };
+}
+
+export function compileRiverExternalEvidenceIngressRequest(
+  candidate: RiverEventInsertCandidate
+): RiverExternalEvidenceIngressRequest {
+  return {
+    contract_id: RIVER_EXTERNAL_EVIDENCE_INGRESS_CONTRACT_ID,
+    contract_version: '0.1',
+    event: candidate,
+  };
+}
+
+/**
+ * Transport-neutral binding to RIVER-EXTERNAL-EVIDENCE-INGRESS-001.
+ *
+ * The commerce application never receives database-write authority. It can
+ * only submit a precompiled evidence event to the admitted ingress service and
+ * accept success after the ingress returns both canonical event and receipt refs.
+ */
+export class ExternalIngressRiverEventWriter implements RiverEventWriter {
+  constructor(private readonly port: RiverExternalEvidenceIngressPort) {}
+
+  async appendBankEvidenceEvent(
+    candidate: RiverEventInsertCandidate
+  ): Promise<RiverEventWriteReceipt> {
+    const response = await this.port.ingest(
+      compileRiverExternalEvidenceIngressRequest(candidate)
+    );
+
+    if (!response.accepted) {
+      throw new Error(
+        `River ingress rejected evidence: ${response.failure_code ?? 'INGEST_FAILED'} ${response.reason ?? ''}`.trim()
+      );
+    }
+
+    if (
+      !response.river_event_ref ||
+      !response.river_receipt_ref ||
+      !response.workspace_id ||
+      !response.source_event_ref ||
+      !response.event_hash ||
+      !response.recorded_at
+    ) {
+      throw new Error(
+        'River ingress success response is missing canonical event/receipt lineage.'
+      );
+    }
+
+    if (response.workspace_id !== candidate.workspace_id) {
+      throw new Error('River ingress workspace does not match submitted event.');
+    }
+
+    if (response.source_system !== candidate.source_system) {
+      throw new Error('River ingress source system does not match submitted event.');
+    }
+
+    if (response.source_event_ref !== candidate.source_event_ref) {
+      throw new Error('River ingress source event ref does not match submitted event.');
+    }
+
+    if (response.event_hash !== candidate.event_hash) {
+      throw new Error('River ingress event hash does not match submitted event.');
+    }
+
+    return {
+      riverEventId: response.river_event_ref,
+      riverReceiptId: response.river_receipt_ref,
+      workspaceId: response.workspace_id,
+      sourceEventRef: response.source_event_ref,
+      eventHash: response.event_hash,
+      recordedAt: response.recorded_at,
+      idempotentReplay: response.idempotent_replay === true,
+    };
+  }
 }
 
 /**
