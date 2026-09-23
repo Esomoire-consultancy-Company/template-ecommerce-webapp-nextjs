@@ -27,6 +27,13 @@ export interface BankSettlementRiverHandoff {
   rawFinancialInformationPersisted: false;
 }
 
+export interface BankReplayEvidence {
+  deterministic: true;
+  observationSetHash: string;
+  reconciliationHash: string;
+  replayedAt: string;
+}
+
 export interface RiverBankIngestionContext {
   workspaceId: string;
   streamId?: string;
@@ -180,13 +187,22 @@ export function validateBankRiverHandoff(
 export function compileBankRiverEvent(input: {
   handoff: BankSettlementRiverHandoff;
   context: RiverBankIngestionContext;
-  replayVerified: boolean;
+  replay: BankReplayEvidence;
   observedAt?: string;
 }): RiverEventInsertCandidate {
   validateBankRiverHandoff(input.handoff);
 
-  if (!input.replayVerified) {
-    throw new Error('Provider-backed replay must be verified before River ingest.');
+  if (input.replay.deterministic !== true) {
+    throw new Error('Provider-backed replay must be deterministic before River ingest.');
+  }
+
+  if (
+    input.replay.observationSetHash !== input.handoff.observationSetHash ||
+    input.replay.reconciliationHash !== input.handoff.reconciliationHash
+  ) {
+    throw new Error(
+      'Provider-backed replay hashes do not match the bank handoff evidence.'
+    );
   }
 
   if (!input.context.workspaceId) {
