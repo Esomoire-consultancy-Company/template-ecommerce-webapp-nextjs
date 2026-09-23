@@ -136,6 +136,19 @@ function buildExpected() {
   return expected;
 }
 
+function readToleranceMinor() {
+  const raw = optional('BANK_EXPECTED_TOLERANCE_MINOR') ?? '0';
+  const parsed = Number(raw);
+
+  if (!Number.isSafeInteger(parsed) || parsed < 0) {
+    throw new Error(
+      'BANK_EXPECTED_TOLERANCE_MINOR must be a finite non-negative integer.'
+    );
+  }
+
+  return parsed;
+}
+
 function selectObservation(observations, expected) {
   const requestedTxnRef = optional('BANK_PROVIDER_TRANSACTION_REF');
 
@@ -414,7 +427,7 @@ if (action === 'attach-consent') {
   const bankConnectionRef = optional('BANK_CONNECTION_REF') ?? `SETU-SANDBOX-${runId}`;
   const observations = normalizeTransactions(fi, bankConnectionRef);
   const observed = selectObservation(observations, expected);
-  const toleranceMinor = Number(optional('BANK_EXPECTED_TOLERANCE_MINOR') ?? '0');
+  const toleranceMinor = readToleranceMinor();
   const result = reconcile(expected, observed, toleranceMinor);
 
   const receipt = {
@@ -441,6 +454,13 @@ if (action === 'attach-consent') {
   };
 
   const receiptPath = path.join(baseDir, `${runId}.receipt.json`);
+
+  if (fs.existsSync(receiptPath)) {
+    throw new Error(
+      'Reconciliation receipt already exists. Corrections must create a superseding run/receipt rather than overwrite evidence.'
+    );
+  }
+
   fs.writeFileSync(receiptPath, JSON.stringify(receipt, null, 2) + '\n', { mode: 0o600 });
 
   state.reconciliation = {
