@@ -27,9 +27,20 @@ export async function verifySetuConsentState(input: {
   try {
     const consent = await input.client.getConsent(input.consentId);
 
+    if (typeof consent.status !== 'string' || consent.status.length === 0) {
+      return {
+        provider: 'setu-aa',
+        state: 'PROVIDER_REJECTED',
+        resource: 'CONSENT',
+        providerRef: input.consentId,
+        traceId: consent.traceId,
+        observedAt: new Date().toISOString(),
+        reason: 'Provider consent response is missing a valid status.',
+      };
+    }
+
     if (
       input.claimedStatus &&
-      consent.status &&
       input.claimedStatus !== consent.status
     ) {
       return {
@@ -79,6 +90,24 @@ export async function verifyAndFetchSetuFiSession(input: {
 }> {
   try {
     const fi = await input.client.fetchFinancialInformation(input.sessionId);
+    const providerStatus =
+      typeof fi.status === 'string' ? fi.status : undefined;
+
+    if (!providerStatus || !['PARTIAL', 'COMPLETED'].includes(providerStatus)) {
+      return {
+        verification: {
+          provider: 'setu-aa',
+          state: 'PROVIDER_REJECTED',
+          resource: 'FI_SESSION',
+          providerRef: input.sessionId,
+          providerStatus,
+          traceId: typeof fi.traceId === 'string' ? fi.traceId : undefined,
+          observedAt: new Date().toISOString(),
+          reason:
+            'Provider FI response is missing an admissible PARTIAL/COMPLETED status.',
+        },
+      };
+    }
 
     return {
       verification: {
@@ -86,8 +115,7 @@ export async function verifyAndFetchSetuFiSession(input: {
         state: 'PROVIDER_CONFIRMED',
         resource: 'FI_SESSION',
         providerRef: input.sessionId,
-        providerStatus:
-          typeof fi.status === 'string' ? fi.status : undefined,
+        providerStatus,
         traceId: typeof fi.traceId === 'string' ? fi.traceId : undefined,
         observedAt: new Date().toISOString(),
       },
