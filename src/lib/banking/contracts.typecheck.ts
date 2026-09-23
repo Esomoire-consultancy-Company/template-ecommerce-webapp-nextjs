@@ -1,12 +1,10 @@
+import type { BankConnectionRequestScope } from './types';
 import type {
-  BankConnectionRequestScope,
-  BankSettlementRiverHandoff,
-} from './types';
-import {
   BankReplayEvidence,
+  BankSettlementRiverHandoff,
   RiverBankIngestionContext,
-  compileBankRiverEvent,
 } from './river-ingestion';
+import { compileBankRiverEvent } from './river-ingestion';
 
 export const validReadScope: BankConnectionRequestScope =
   'TRANSACTION_READ';
