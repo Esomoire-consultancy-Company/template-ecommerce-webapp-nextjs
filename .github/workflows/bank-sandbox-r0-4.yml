@@ -8,6 +8,8 @@ on:
       - 'scripts/bank-sandbox-verify.mjs'
       - 'scripts/bank-replay-verify.mjs'
       - 'scripts/setu-aa-evidence-run.mjs'
+      - 'scripts/bank-river-handoff-validate.mjs'
+      - 'scripts/bank-river-handoff-validate.mjs'
       - 'docs/architecture/BANK_*'
       - '.github/workflows/bank-sandbox-r0-4.yml'
       - 'package.json'
@@ -53,6 +55,9 @@ jobs:
 
       - name: Syntax-check R0.7 evidence runner
         run: node --check scripts/setu-aa-evidence-run.mjs
+
+      - name: Syntax-check R0.8 River handoff validator
+        run: node --check scripts/bank-river-handoff-validate.mjs
 
       - name: Type-check banking contracts
         run: yarn type-check
