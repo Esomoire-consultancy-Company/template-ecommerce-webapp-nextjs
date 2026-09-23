@@ -16,13 +16,21 @@ function sha256(value) {
   return createHash('sha256').update(canonicalize(value)).digest('hex');
 }
 
-const runId = 'ci-r0-8';
+const runId = `ci-r0-8-${process.pid}-${Date.now()}`;
 const baseDir = path.resolve(process.cwd(), '.local/banking');
 const statePath = path.join(baseDir, `${runId}.json`);
 const receiptPath = path.join(baseDir, `${runId}.receipt.json`);
 const eventPath = path.join(baseDir, `${runId}.river-event.json`);
 
 fs.mkdirSync(baseDir, { recursive: true });
+
+for (const p of [statePath, receiptPath, eventPath]) {
+  if (fs.existsSync(p)) {
+    throw new Error(
+      `Refusing to overwrite existing local evidence fixture path: ${p}`
+    );
+  }
+}
 
 const reconciliation = {
   outcome: 'MATCH',
